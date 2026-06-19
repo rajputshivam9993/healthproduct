@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Doctor360",
+    "slug": "doctor360",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "doctor360",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1E6FE8"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.doctor360.app"
+    },
+    "android": {
+      "package": "in.doctor360.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": []
+  }
+}

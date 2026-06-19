@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Shadcn/UI design tokens. Light palette tuned to the Doctor360 healthcare blue. */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 35% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 35% 12%;
+    --primary: 215 82% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 35% 12%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 162 70% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 215 82% 51%;
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    --background: 215 40% 8%;
+    --foreground: 210 40% 96%;
+    --card: 215 35% 12%;
+    --card-foreground: 210 40% 96%;
+    --primary: 215 90% 65%;
+    --primary-foreground: 215 40% 8%;
+    --secondary: 215 30% 18%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 215 30% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 162 65% 48%;
+    --accent-foreground: 215 40% 8%;
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 28% 24%;
+    --input: 215 28% 24%;
+    --ring: 215 90% 65%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

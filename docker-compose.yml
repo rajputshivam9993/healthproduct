@@ -1,0 +1,43 @@
+# Local development infrastructure for Doctor360 (Req 14.2).
+# Provisions PostgreSQL with the PostGIS extension and Redis, both with
+# health checks so dependent services only start once they are accepting
+# connections.
+services:
+  postgres:
+    # PostGIS image ships PostgreSQL 16 (>= 14 required) with PostGIS preinstalled.
+    image: postgis/postgis:16-3.4
+    container_name: doctor360-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-doctor360}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doctor360}
+      POSTGRES_DB: ${POSTGRES_DB:-doctor360}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-doctor360} -d ${POSTGRES_DB:-doctor360}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: doctor360-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres_data:
+  redis_data:

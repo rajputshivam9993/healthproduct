@@ -1,7 +1,7 @@
 /**
- * Canonical list of doctor specializations. Used to validate registration /
- * profile updates and the search specialty filter (Req 5.2). Centralized so the
- * value set lives in one place (Req 20.8).
+ * @deprecated Use the Specialization entity / database table instead.
+ * This file is kept temporarily for any remaining references during the transition.
+ * The canonical source of specializations is now the `specializations` table.
  */
 export const SPECIALIZATIONS = [
   'General Physician',

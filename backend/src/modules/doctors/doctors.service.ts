@@ -2,11 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { DoctorProfile } from '../../entities/doctor-profile.entity';
+import { Specialization } from '../../entities/specialization.entity';
 import { AvailabilitySlot } from '../../entities/availability-slot.entity';
 import { User } from '../../entities/user.entity';
 import { UserRole, UserStatus, VerificationStatus } from '../../entities/enums';
 import { haversineMeters } from '../../common/utils/geo';
-import { isValidSpecialization } from '../../common/constants/specializations';
 import { cityCoords } from '../../common/constants/cities';
 import { ListDoctorsDto } from './dto/list-doctors.dto';
 import { SearchDoctorsDto } from './dto/search-doctors.dto';
@@ -58,9 +58,24 @@ export interface DoctorSearchResponse extends Paginated<DoctorSearchResult> {
 export class DoctorsService {
   constructor(
     @InjectRepository(DoctorProfile) private readonly profiles: Repository<DoctorProfile>,
+    @InjectRepository(Specialization) private readonly specializations: Repository<Specialization>,
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(AvailabilitySlot) private readonly slots: Repository<AvailabilitySlot>,
   ) {}
+
+  /** Returns all active specializations ordered by displayOrder. */
+  async getSpecializations(): Promise<Specialization[]> {
+    return this.specializations.find({
+      where: { isActive: true },
+      order: { displayOrder: 'ASC' },
+    });
+  }
+
+  /** Checks if a specialization name exists in the DB. */
+  private async isValidSpecialization(name: string): Promise<boolean> {
+    const count = await this.specializations.count({ where: { name, isActive: true } });
+    return count > 0;
+  }
 
   /**
    * Location-based doctor search (Req 5). Returns verified, active doctors within
@@ -74,7 +89,7 @@ export class DoctorsService {
     const radiusKm = dto.radiusKm ?? 10;
 
     // Unknown specialty → empty list (Req 5.2).
-    if (dto.specialization && !isValidSpecialization(dto.specialization)) {
+    if (dto.specialization && !(await this.isValidSpecialization(dto.specialization))) {
       return { items: [], total: 0, page, pageSize };
     }
 

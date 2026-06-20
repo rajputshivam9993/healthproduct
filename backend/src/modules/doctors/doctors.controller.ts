@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query } from '@nestjs/common';
 import { DoctorsService } from './doctors.service';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../entities/enums';
 import { ListDoctorsDto } from './dto/list-doctors.dto';
@@ -15,6 +16,14 @@ import { DoctorStatusDto } from './dto/doctor-status.dto';
 @Controller('doctors')
 export class DoctorsController {
   constructor(private readonly doctorsService: DoctorsService) {}
+
+  /** Public list of available specializations from the database. */
+  @Public()
+  @Get('specializations')
+  async getSpecializations() {
+    const items = await this.doctorsService.getSpecializations();
+    return { specializations: items.map((s) => s.name) };
+  }
 
   @Roles(UserRole.ADMIN)
   @Get()

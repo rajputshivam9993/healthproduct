@@ -56,6 +56,11 @@ export interface SearchParams {
 
 /** Doctor self-service profile + patient search API (Req 4.2, 5, 21.6). */
 export const doctorService = {
+  /** Fetch the list of specializations from the backend. */
+  getSpecializations(): Promise<{ specializations: string[] }> {
+    return apiClient.get('/doctors/specializations').then((r) => r.data);
+  },
+
   search(params: SearchParams): Promise<DoctorSearchResponse> {
     return apiClient.get('/doctors/search', { params }).then((r) => r.data);
   },

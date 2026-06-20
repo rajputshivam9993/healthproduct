@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../../entities/user.entity';
 import { DoctorProfile } from '../../entities/doctor-profile.entity';
+import { Specialization } from '../../entities/specialization.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
@@ -18,7 +19,7 @@ import { RefreshTokenStore } from './stores/refresh-token.store';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, DoctorProfile]),
+    TypeOrmModule.forFeature([User, DoctorProfile, Specialization]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

@@ -9,6 +9,8 @@ export interface DoctorProfile {
   qualification: string | null;
   degree: string | null;
   clinicAddress: string | null;
+  latitude: string | null;
+  longitude: string | null;
   bio: string | null;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
   avgRating: string;
@@ -23,6 +25,8 @@ export interface UpdateDoctorProfilePayload {
   consultationFee?: number;
   clinicAddress?: string;
   bio?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 /** A doctor search result row (Req 5.3). */

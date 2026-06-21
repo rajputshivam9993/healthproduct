@@ -51,7 +51,9 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api');
 
   const port = config.get<number>('PORT') ?? 3000;
-  await app.listen(port);
+  // Bind to all interfaces (0.0.0.0) so a phone on the same LAN can reach the dev
+  // server, not just localhost. (Windows Firewall must still allow inbound :3000.)
+  await app.listen(port, '0.0.0.0');
 }
 
 void bootstrap();

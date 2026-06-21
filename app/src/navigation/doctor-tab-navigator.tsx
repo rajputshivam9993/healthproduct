@@ -37,12 +37,20 @@ export function DoctorTabNavigator() {
       <Tab.Screen
         name="Consultations"
         component={DoctorConsultationsScreen}
-        options={{ tabBarIcon: ({ color, size }) => <Stethoscope color={color} size={size} /> }}
+        options={{
+          // The screen has its own purple header.
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Stethoscope color={color} size={size} />,
+        }}
       />
       <Tab.Screen
         name="Profile"
         component={DoctorProfileScreen}
-        options={{ tabBarIcon: ({ color, size }) => <User color={color} size={size} /> }}
+        options={{
+          // The screen's own purple header replaces the nav header bar.
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+        }}
       />
     </Tab.Navigator>
   );

@@ -16,27 +16,27 @@ export interface Palette {
 }
 
 export const lightPalette: Palette = {
-  primary: '#1E6FE8',
-  primaryMuted: '#E8F1FE',
-  accent: '#20B486',
+  primary: '#6C3FE8',
+  primaryMuted: '#F0EAFF',
+  accent: '#6C3FE8',
   background: '#FFFFFF',
-  surface: '#F7F9FC',
-  text: '#0F1B2D',
-  textMuted: '#5B6B82',
-  border: '#E2E8F0',
+  surface: '#FAF8FF',
+  text: '#1A1A2E',
+  textMuted: '#888888',
+  border: '#E0D7FC',
   danger: '#E5484D',
-  success: '#20B486',
+  success: '#22C55E',
 };
 
 export const darkPalette: Palette = {
-  primary: '#4D92FF',
-  primaryMuted: '#15233B',
-  accent: '#33C99B',
+  primary: '#9B7BF2',
+  primaryMuted: '#251A40',
+  accent: '#9B7BF2',
   background: '#0B1220',
-  surface: '#131C2E',
+  surface: '#161226',
   text: '#F4F7FB',
   textMuted: '#9AAAC2',
-  border: '#243049',
+  border: '#2E2447',
   danger: '#FF6166',
   success: '#33C99B',
 };

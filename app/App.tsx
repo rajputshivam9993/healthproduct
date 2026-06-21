@@ -10,6 +10,7 @@ import { RootNavigator } from './src/navigation/root-navigator';
 import { AnimatedSplash } from './src/components/animated-splash';
 import { OfflineIndicator } from './src/components/offline-indicator';
 import { ThemeProvider, useTheme } from './src/theme/theme-context';
+import { AppModalProvider } from './src/components/app-modal';
 
 // Connect device connectivity to React Query (pause/resume on reconnect, Req 16.3).
 wireOnlineManager();
@@ -50,17 +51,19 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{ persister: asyncStoragePersister, maxAge: ONE_DAY }}
-          >
-            {!splashDone ? (
-              <AnimatedSplash onDone={() => setSplashDone(true)} />
-            ) : (
-              <ThemedNavigation />
-            )}
-            <StatusBar style="auto" />
-          </PersistQueryClientProvider>
+          <AppModalProvider>
+            <PersistQueryClientProvider
+              client={queryClient}
+              persistOptions={{ persister: asyncStoragePersister, maxAge: ONE_DAY }}
+            >
+              {!splashDone ? (
+                <AnimatedSplash onDone={() => setSplashDone(true)} />
+              ) : (
+                <ThemedNavigation />
+              )}
+              <StatusBar style="auto" />
+            </PersistQueryClientProvider>
+          </AppModalProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

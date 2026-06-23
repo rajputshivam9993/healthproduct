@@ -74,7 +74,7 @@ export function DoctorConsultationsScreen() {
       <Animated.View style={[styles.header, { paddingTop: insets.top + 22, opacity: headerOpacity, transform: [{ translateY: headerY }] }]}>
         <View style={styles.circleLg} pointerEvents="none" />
         <View style={styles.circleSm} pointerEvents="none" />
-        <Text style={styles.headerTitle}>Consultations</Text>
+        <Text style={styles.headerTitle}>Appointments</Text>
         <Text style={styles.headerSub}>{(appts ?? []).length} total appointments</Text>
 
         <View style={styles.waveWrap} pointerEvents="none">
@@ -242,7 +242,7 @@ const makeStyles = (c: Palette) =>
     // header (purple with wave transition to the body)
     header: {
       backgroundColor: c.primary,
-      paddingBottom: WAVE_H + 14,
+      paddingBottom: WAVE_H + 4,
       paddingHorizontal: spacing.md,
       overflow: 'hidden',
     },
@@ -252,13 +252,15 @@ const makeStyles = (c: Palette) =>
     headerSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
     waveWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 
-    body: { flex: 1 },
+    // Pull the body up 1px with a surface backing so no thin purple seam shows
+    // between the wave's bottom and the content (keeps the wave design intact).
+    body: { flex: 1, marginTop: -1, backgroundColor: c.surface },
 
     // tabs (sliding segment)
     tabs: {
       flexDirection: 'row',
       marginHorizontal: spacing.md,
-      marginTop: spacing.xs,
+      marginTop: 2,
       marginBottom: spacing.sm,
       height: 42,
       borderRadius: 21,

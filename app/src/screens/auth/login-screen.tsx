@@ -17,11 +17,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { ArrowLeft, Check, Clock, Lock, Sparkles, Stethoscope, User } from 'lucide-react-native';
+import { ArrowLeft, Check, Clock, Lock, Sparkles, Stethoscope } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../hooks/use-auth';
 import { authService } from '../../services/auth-service';
-import type { AuthTokens, User as AppUser, UserRole } from '../../types';
+import type { AuthTokens, User as AppUser } from '../../types';
 
 const COLORS = {
   primary: '#6C3FE8',
@@ -36,7 +36,6 @@ const COLORS = {
   success: '#22C55E',
 } as const;
 
-type Role = 'patient' | 'doctor';
 type Step = 'phone' | 'otp';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -49,14 +48,6 @@ const SEG_PAD = 5;
 const SEG_INNER = SCREEN_W - 48 - SEG_PAD * 2;
 const SEG_HALF = SEG_INNER / 2;
 
-// Fixed dev test logins: these numbers never hit the network on "Send OTP" and
-// never show an error popup. On verify they try the real backend first (real
-// session if reachable), else fall back to a local mock session. OTP is 123456.
-const TEST_ACCOUNTS: Record<string, UserRole> = {
-  '9000000001': 'DOCTOR',
-  '8174058383': 'PATIENT',
-};
-const TEST_OTP = '123456';
 
 /**
  * Phone + OTP login (Req 1, 2). Two steps share one screen: request an OTP for a
@@ -67,7 +58,6 @@ export function LoginScreen() {
   const { setSession } = useAuth();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('phone');
-  const [role, setRole] = useState<Role>('patient');
   const [phone, setPhone] = useState('');
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -116,15 +106,10 @@ export function LoginScreen() {
     }
     Haptics.selectionAsync().catch(() => {});
 
-    // Fixed test logins: skip the network entirely so the error popup can never show.
-    if (TEST_ACCOUNTS[phone]) {
-      setDevOtp(TEST_OTP);
-      setStep('otp');
-      return;
-    }
-
     setLoading(true);
     try {
+      // Real backend OTP request. In dev mode the server accepts 123456 for any
+      // number, so every login yields a real session (and thus real data).
       const result = await authService.requestOtp(phone);
       setDevOtp(result.devOtp ?? null);
       setStep('otp');
@@ -197,7 +182,7 @@ export function LoginScreen() {
             bounces={false}
           >
             {step === 'phone' ? (
-              <PhoneStep role={role} setRole={setRole} phone={phone} setPhone={setPhone} loading={loading} onSubmit={requestOtp} />
+              <PhoneStep phone={phone} setPhone={setPhone} loading={loading} onSubmit={requestOtp} />
             ) : (
               <OtpStep phone={phone} devOtp={devOtp} onVerified={setSession} onResend={requestOtp} />
             )}
@@ -212,15 +197,11 @@ export function LoginScreen() {
    STEP 1 — phone number
    ========================================================================= */
 function PhoneStep({
-  role,
-  setRole,
   phone,
   setPhone,
   loading,
   onSubmit,
 }: {
-  role: Role;
-  setRole: (r: Role) => void;
   phone: string;
   setPhone: (p: string) => void;
   loading: boolean;
@@ -298,17 +279,9 @@ function PhoneStep({
           <Sparkles size={12} color={COLORS.primary} strokeWidth={2.4} />
           <Text style={styles.badgeText}>WELCOME TO DOCTOR 360</Text>
         </View>
-        {/* Heading breathes on the same pulse as the CTA (anchored to its left edge). */}
-        <Animated.Text style={[styles.heading, { transformOrigin: 'left', transform: [{ scale: ctaPulse }] }]}>
-          Login <Text style={styles.headingAccent}>or Sign up</Text>
-        </Animated.Text>
       </Animated.View>
 
       <Animated.View style={[styles.block, rise(1)]}>
-        <RoleSegment role={role} setRole={setRole} />
-      </Animated.View>
-
-      <Animated.View style={[styles.block, rise(2)]}>
         <Text style={styles.label}>MOBILE NUMBER</Text>
         <Animated.View
           style={[
@@ -340,7 +313,7 @@ function PhoneStep({
         </Animated.View>
       </Animated.View>
 
-      <Animated.View style={rise(3)}>
+      <Animated.View style={rise(2)}>
         {/* Combine the breathing pulse with the press-bounce on one scale. */}
         <Animated.View style={[styles.ctaWrap, { transform: [{ scale: Animated.multiply(ctaScale, ctaPulse) }] }]}>
           <Pressable style={styles.cta} onPressIn={pressIn} onPressOut={pressOut} onPress={onSubmit} disabled={loading}>
@@ -354,41 +327,13 @@ function PhoneStep({
         </View>
       </Animated.View>
 
-      <Animated.View style={[styles.footer, rise(4)]}>
+      <Animated.View style={[styles.footer, rise(3)]}>
         <Text style={styles.terms}>
           By continuing you agree to our <Text style={styles.termsLink}>Terms</Text> &{' '}
           <Text style={styles.termsLink}>Privacy Policy</Text>
         </Text>
       </Animated.View>
     </>
-  );
-}
-
-/** Segmented control: a purple highlight springs between Patient / Doctor. */
-function RoleSegment({ role, setRole }: { role: Role; setRole: (r: Role) => void }) {
-  const slide = useRef(new Animated.Value(role === 'patient' ? 0 : 1)).current;
-  useEffect(() => {
-    Animated.spring(slide, {
-      toValue: role === 'patient' ? 0 : 1,
-      friction: 9,
-      tension: 90,
-      useNativeDriver: true,
-    }).start();
-  }, [role, slide]);
-  const tx = slide.interpolate({ inputRange: [0, 1], outputRange: [0, SEG_HALF] });
-
-  return (
-    <View style={styles.segment}>
-      <Animated.View style={[styles.segHighlight, { transform: [{ translateX: tx }] }]} />
-      <Pressable style={styles.segHalf} onPress={() => setRole('patient')}>
-        <User size={15} color={role === 'patient' ? COLORS.white : COLORS.primary} strokeWidth={2.2} />
-        <Text style={[styles.segText, { color: role === 'patient' ? COLORS.white : COLORS.primary }]}>Patient</Text>
-      </Pressable>
-      <Pressable style={styles.segHalf} onPress={() => setRole('doctor')}>
-        <Stethoscope size={15} color={role === 'doctor' ? COLORS.white : COLORS.primary} strokeWidth={2.2} />
-        <Text style={[styles.segText, { color: role === 'doctor' ? COLORS.white : COLORS.primary }]}>Doctor</Text>
-      </Pressable>
-    </View>
   );
 }
 
@@ -490,26 +435,11 @@ function OtpStep({
   const verify = async (value: string) => {
     setLoading(true);
     try {
+      // Real backend verification → real tokens, so every screen loads live data.
+      // In dev the server accepts 123456 for any number (see auth.service.ts).
       const { user, tokens } = await authService.verifyOtp(phone, value);
       finishLogin(user, tokens);
     } catch (err) {
-      // Fixed test login: right code but backend unreachable -> sign in locally so
-      // these demo numbers always work (no error popup).
-      const role = TEST_ACCOUNTS[phone];
-      if (role && value === TEST_OTP) {
-        finishLogin(
-          {
-            id: `test-${phone}`,
-            role,
-            name: role === 'DOCTOR' ? 'Dr. Demo' : 'Demo Patient',
-            phone,
-            email: null,
-            avatarUrl: null,
-          },
-          { accessToken: `mock-${phone}`, refreshToken: `mock-${phone}` },
-        );
-        return;
-      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       runShake();
       setCode('');

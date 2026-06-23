@@ -27,14 +27,6 @@ import { TokenService } from './token.service';
 
 const DEFAULT_DEVICE = 'default';
 
-// Dev-only fixed test logins: these phones always accept OTP 123456, bypassing
-// generation/expiry/rate-limits so demos and QA are deterministic. Never active
-// in production (guarded by isDev).
-const STATIC_TEST_OTPS: Record<string, string> = {
-  '9000000001': '123456', // demo doctor
-  '8174058383': '123456', // demo patient
-};
-
 /** Sanitized user returned to clients (never exposes passwordHash). */
 export interface PublicUser {
   id: string;
@@ -74,13 +66,6 @@ export class AuthService {
 
   /** Requests an OTP for a phone number (Req 1.1, 1.4, 1.5, 2.6). */
   async requestOtp(phone: string): Promise<{ message: string; devOtp?: string }> {
-    // Fixed test logins (dev only): always return 123456, no rate-limit/expiry.
-    if (this.isDev && STATIC_TEST_OTPS[phone]) {
-      const code = STATIC_TEST_OTPS[phone];
-      this.logger.info(`[DEV STATIC OTP] ${phone} -> ${code}`);
-      return { message: 'OTP generated (dev mode)', devOtp: code };
-    }
-
     const decision = this.otpStore.canRequest(phone);
     if (!decision.allowed) {
       throw new OtpRateLimitException(decision.retryAfterSec ?? 60);
@@ -105,24 +90,16 @@ export class AuthService {
 
   /** Verifies an OTP and authenticates (creating a new patient if needed). */
   async verifyOtp(phone: string, otp: string, deviceId = DEFAULT_DEVICE): Promise<AuthResult> {
-    const staticOtp = this.isDev ? STATIC_TEST_OTPS[phone] : undefined;
-    if (staticOtp) {
-      // Fixed test login: accept only the configured code, skip the OTP store.
-      if (otp !== staticOtp) {
+    const result = this.otpStore.verify(phone, otp);
+    switch (result.status) {
+      case 'LOCKED':
+        throw new OtpLockedException(result.retryAfterSec);
+      case 'EXPIRED':
+        throw new UnauthorizedException('OTP has expired');
+      case 'INVALID':
         throw new UnauthorizedException('OTP is incorrect');
-      }
-    } else {
-      const result = this.otpStore.verify(phone, otp);
-      switch (result.status) {
-        case 'LOCKED':
-          throw new OtpLockedException(result.retryAfterSec);
-        case 'EXPIRED':
-          throw new UnauthorizedException('OTP has expired');
-        case 'INVALID':
-          throw new UnauthorizedException('OTP is incorrect');
-        case 'OK':
-          break;
-      }
+      case 'OK':
+        break;
     }
 
     let user = await this.users.findOne({ where: { phone } });

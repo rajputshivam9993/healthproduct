@@ -37,7 +37,6 @@ import { config } from '../../constants/config';
 import type { PatientNav } from '../../navigation/types';
 import { radius, spacing, type Palette } from '../../theme';
 import { usePalette, useThemedStyles } from '../../theme/theme-context';
-import { ThemeToggle } from '../../components/theme-toggle';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const WAVE_H = 46;
@@ -251,9 +250,6 @@ export function PatientProfileScreen() {
             <Text style={styles.linkText}>My Prescriptions</Text>
             <ChevronRight color={c.textMuted} size={18} />
           </Pressable>
-
-          <Text style={styles.settingsLabel}>APPEARANCE</Text>
-          <ThemeToggle />
 
           <Pressable style={styles.logout} onPress={logout}>
             <LogOut color={c.danger} size={18} />

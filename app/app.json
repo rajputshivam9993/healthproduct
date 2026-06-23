@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "doctor360",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#6C3FE8"

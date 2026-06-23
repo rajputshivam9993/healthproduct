@@ -34,7 +34,6 @@ import { useAppModal } from '../../components/app-modal';
 import { useMyDoctorProfile, useUpdateMyDoctorProfile } from '../../hooks/use-doctor-profile';
 import { radius, spacing, typography, type Palette } from '../../theme';
 import { usePalette, useThemedStyles } from '../../theme/theme-context';
-import { ThemeToggle } from '../../components/theme-toggle';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const WAVE_H = 46;
@@ -289,9 +288,6 @@ export function DoctorProfileScreen() {
         )}
 
         <Animated.View style={rise(2)}>
-          <Text style={styles.settingsLabel}>APPEARANCE</Text>
-          <ThemeToggle />
-
           <Pressable style={styles.logout} onPress={logout}>
             <LogOut color={c.danger} size={18} />
             <Text style={styles.logoutText}>Log out</Text>

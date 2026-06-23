@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { CalendarClock, CalendarDays, IndianRupee, Stethoscope, TrendingUp } from 'lucide-react-native';
+import { CalendarClock, CalendarDays, Bell, IndianRupee, Stethoscope, TrendingUp } from 'lucide-react-native';
 import { useAppointments } from '../../hooks/use-appointments';
 import { useMyDoctorProfile } from '../../hooks/use-doctor-profile';
 import type { Appointment } from '../../services/appointment-service';
@@ -82,7 +82,8 @@ export function DoctorDashboardScreen() {
             <Text style={styles.headerSub}>{profile?.specialization ?? "Here's your day at a glance"}</Text>
           </View>
           <Animated.View style={[styles.avatar, { transform: [{ scale: avatarScale }] }]}>
-            <Stethoscope color="#FFFFFF" size={26} strokeWidth={2.2} />
+            <Bell color="#FFFFFF" size={20} strokeWidth={2.2} />
+            <View style={styles.notificationDot} />
           </Animated.View>
         </View>
 
@@ -190,8 +191,10 @@ function StatCard({ icon, tint, label, value }: { icon: React.ReactNode; tint: s
   return (
     <View style={styles.statCard}>
       <View style={[styles.statIcon, { backgroundColor: tint }]}>{icon}</View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statText}>
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
     </View>
   );
 }
@@ -221,8 +224,12 @@ const makeStyles = (c: Palette) =>
     name: { fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginTop: 1 },
     headerSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.72)', marginTop: 3 },
     avatar: {
-      width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.18)',
+      width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)',
       alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+    },
+    notificationDot: {
+      position: 'absolute', top: 9, right: 9, width: 8, height: 8, borderRadius: 4,
+      backgroundColor: '#FF4D4F', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)',
     },
     waveWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     // Pull the body up by 1px with a surface backing so no thin purple seam shows
@@ -235,11 +242,13 @@ const makeStyles = (c: Palette) =>
     // stat cards
     cardRow: { flexDirection: 'row', gap: spacing.md },
     statCard: {
-      flex: 1, backgroundColor: c.background, borderRadius: radius.lg, padding: spacing.md, gap: 6,
+      flex: 1, backgroundColor: c.background, borderRadius: radius.lg, padding: spacing.md,
+      flexDirection: 'row', alignItems: 'center', gap: spacing.md,
       borderWidth: 1, borderColor: c.border,
       shadowColor: c.primary, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2,
     },
     statIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    statText: { flex: 1 },
     statValue: { fontSize: 24, fontWeight: '800', color: c.text },
     statLabel: { fontSize: 12, color: c.textMuted },
 

@@ -1,9 +1,14 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
+  Easing,
   FlatList,
+  Image,
+  type ImageSourcePropType,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,7 +16,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import {
@@ -38,6 +44,7 @@ import { radius, spacing, typography, type Palette } from '../../theme';
 import { usePalette, useThemedStyles } from '../../theme/theme-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const WAVE_H = 44;
 const GRID_PADDING = 20;
 const GRID_GAP = 10;
 // Exactly 3 per row: subtract padding and gaps, divide by 3
@@ -64,6 +71,17 @@ const CATEGORY_STYLES: Record<string, { Icon: React.ComponentType<{ color: strin
 };
 
 const DEFAULT_CATEGORY_STYLE = { Icon: Stethoscope, bg: '#EEF4FF', color: '#3B82F6' };
+
+// Per-speciality images (placeholders in assets/specialities — replace with real
+// photos using the same filenames). Falls back to the icon when no image exists.
+const SPECIALITY_IMAGES: Record<string, ImageSourcePropType> = {
+  'General Physician': require('../../../assets/specialities/general-physician.png'),
+  Cardiologist: require('../../../assets/specialities/cardiologist.png'),
+  Dermatologist: require('../../../assets/specialities/dermatologist.png'),
+  Pediatrician: require('../../../assets/specialities/pediatrician.png'),
+  Gynecologist: require('../../../assets/specialities/gynecologist.png'),
+  Orthopedic: require('../../../assets/specialities/orthopedic.png'),
+};
 
 interface LocationState {
   label: string;
@@ -93,6 +111,7 @@ export function PatientHomeScreen() {
   const navigation = useNavigation<PatientNav>();
   const c = usePalette();
   const styles = useThemedStyles(makeStyles);
+  const insets = useSafeAreaInsets();
 
   const [location, setLocation] = useState<LocationState>({
     label: CITY_OPTIONS[0].label,
@@ -226,40 +245,65 @@ export function PatientHomeScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
+      {/* ─── Purple wave header: location + search ─── */}
+      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            style={styles.locationSelector}
+            onPress={() => setShowCityPicker(!showCityPicker)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.locationIconWrap}>
+              <MapPin color={c.primary} size={14} />
+            </View>
+            <View style={styles.locationTextWrap}>
+              <Text style={styles.locationLabel}>Your Location</Text>
+              <View style={styles.locationValueRow}>
+                <Text style={styles.locationValue} numberOfLines={1}>
+                  {location.label}
+                </Text>
+                <ChevronDown color="rgba(255,255,255,0.9)" size={14} />
+              </View>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.notificationBtn} activeOpacity={0.8}>
+            <Bell color="#fff" size={20} />
+            <View style={styles.notificationDot} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchBar}>
+          <View style={styles.searchIconWrap}>
+            <Search color={c.primary} size={16} />
+          </View>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search doctor, speciality, etc."
+            placeholderTextColor={c.textMuted}
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+        </View>
+
+        <View style={styles.waveWrap} pointerEvents="none">
+          <Svg width={SCREEN_WIDTH} height={WAVE_H} viewBox={`0 0 ${SCREEN_WIDTH} ${WAVE_H}`}>
+            <Path
+              d={`M0,26 C ${SCREEN_WIDTH * 0.3},0 ${SCREEN_WIDTH * 0.7},${WAVE_H} ${SCREEN_WIDTH},12 L ${SCREEN_WIDTH},${WAVE_H} L 0,${WAVE_H} Z`}
+              fill={c.surface}
+            />
+          </Svg>
+        </View>
+      </View>
+
       <FlatList
         data={isLoading ? [] : data?.items ?? []}
         keyExtractor={(d) => d.id}
+        style={styles.bodyFix}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
-            {/* ─── Top bar: Location + Notification ─── */}
-            <View style={styles.topBar}>
-              <TouchableOpacity
-                style={styles.locationSelector}
-                onPress={() => setShowCityPicker(!showCityPicker)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.locationIconWrap}>
-                  <MapPin color="#fff" size={14} />
-                </View>
-                <View style={styles.locationTextWrap}>
-                  <Text style={styles.locationLabel}>Your Location</Text>
-                  <View style={styles.locationValueRow}>
-                    <Text style={styles.locationValue} numberOfLines={1}>
-                      {location.label}
-                    </Text>
-                    <ChevronDown color={c.textMuted} size={14} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.notificationBtn} activeOpacity={0.7}>
-                <Bell color={c.text} size={20} />
-                <View style={styles.notificationDot} />
-              </TouchableOpacity>
-            </View>
-
             {/* ─── Location picker dropdown ─── */}
             {showCityPicker && (
               <View style={styles.cityDropdown}>
@@ -303,66 +347,26 @@ export function PatientHomeScreen() {
               </View>
             )}
 
-            {/* ─── Search bar ─── */}
-            <View style={styles.searchSection}>
-              <Text style={styles.greeting}>What are you looking for?</Text>
-              <View style={styles.searchBar}>
-                <Search color={c.textMuted} size={18} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search doctor, speciality, etc."
-                  placeholderTextColor={c.textMuted}
-                  value={searchText}
-                  onChangeText={setSearchText}
-                />
-              </View>
-            </View>
 
             {/* ─── Categories (3 per row) ─── */}
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Categories</Text>
+              <Text style={styles.sectionTitle}>Speciality</Text>
               <TouchableOpacity onPress={() => setSpecialization(null)}>
                 <Text style={styles.seeAll}>See All</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.categoryGrid}>
-              {gridCategories.map((specName, index) => {
-                const isActive = specialization === specName;
-                const catStyle = CATEGORY_STYLES[specName] ?? DEFAULT_CATEGORY_STYLE;
-                const CatIcon = catStyle.Icon;
-                const isEndOfRow = (index + 1) % 3 === 0;
-                return (
-                  <TouchableOpacity
-                    key={specName}
-                    style={[
-                      styles.categoryCard,
-                      { backgroundColor: isActive ? catStyle.color : catStyle.bg },
-                      !isEndOfRow && { marginRight: GRID_GAP },
-                      index >= 3 && { marginTop: GRID_GAP },
-                    ]}
-                    onPress={() => setSpecialization(isActive ? null : specName)}
-                    activeOpacity={0.8}
-                  >
-                    <View
-                      style={[
-                        styles.categoryIconWrap,
-                        { backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.9)' },
-                      ]}
-                    >
-                      <CatIcon color={isActive ? '#fff' : catStyle.color} size={24} />
-                    </View>
-                    <Text
-                      style={[
-                        styles.categoryLabel,
-                        { color: isActive ? '#fff' : catStyle.color },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {specName}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {gridCategories.map((specName, index) => (
+                <CategoryCard
+                  key={specName}
+                  specName={specName}
+                  index={index}
+                  isActive={specialization === specName}
+                  catStyle={CATEGORY_STYLES[specName] ?? DEFAULT_CATEGORY_STYLE}
+                  isEndOfRow={(index + 1) % 3 === 0}
+                  onPress={() => setSpecialization(specialization === specName ? null : specName)}
+                />
+              ))}
             </View>
 
             {/* ─── Filter chips ─── */}
@@ -420,7 +424,91 @@ export function PatientHomeScreen() {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
+  );
+}
+
+/** Category tile: staggered entrance, press-bounce, and a gentle pulse while active. */
+function CategoryCard({
+  specName,
+  index,
+  isActive,
+  catStyle,
+  isEndOfRow,
+  onPress,
+}: {
+  specName: string;
+  index: number;
+  isActive: boolean;
+  catStyle: { Icon: React.ComponentType<{ color: string; size: number }>; bg: string; color: string };
+  isEndOfRow: boolean;
+  onPress: () => void;
+}) {
+  const c = usePalette();
+  const styles = useThemedStyles(makeStyles);
+  const enter = useRef(new Animated.Value(0)).current; // fade + scale-in on mount
+  const press = useRef(new Animated.Value(1)).current; // tap bounce
+  const pulse = useRef(new Animated.Value(1)).current; // breathing while selected
+  const CatIcon = catStyle.Icon;
+  const image = SPECIALITY_IMAGES[specName];
+
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 380,
+      delay: index * 55,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [enter, index]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.05, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      pulse.setValue(1);
+    };
+  }, [isActive, pulse]);
+
+  // Combine entrance scale, press bounce and active pulse onto one transform.
+  const scale = Animated.multiply(
+    Animated.multiply(press, pulse),
+    enter.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }),
+  );
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => Animated.spring(press, { toValue: 0.94, useNativeDriver: true }).start()}
+      onPressOut={() => Animated.spring(press, { toValue: 1, friction: 4, useNativeDriver: true }).start()}
+      style={[!isEndOfRow && { marginRight: GRID_GAP }, index >= 3 && { marginTop: GRID_GAP }]}
+    >
+      <Animated.View
+        style={[
+          styles.categoryCard,
+          { opacity: enter, transform: [{ scale }] },
+          isActive && styles.categoryCardActive,
+        ]}
+      >
+        {image ? (
+          <Image source={image} style={styles.categoryImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.categoryFallback}>
+            <CatIcon color={c.primary} size={30} />
+          </View>
+        )}
+        <Text style={styles.categoryLabel} numberOfLines={2}>
+          {specName}
+        </Text>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -453,18 +541,26 @@ function EmptyState({ text }: { text: string }) {
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.background },
-    listContent: { paddingBottom: 100 },
+    container: { flex: 1, backgroundColor: c.surface },
+    listContent: { paddingBottom: 100, paddingTop: spacing.sm },
 
-    // ─── Top Bar ───
-    topBar: {
+    // ─── Purple wave header ───
+    header: {
+      backgroundColor: c.primary,
+      paddingHorizontal: spacing.md + 4,
+      paddingBottom: WAVE_H + 8,
+      overflow: 'hidden',
+    },
+    headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: spacing.md + 4,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.sm,
+      marginBottom: spacing.md,
     },
+    waveWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    // 1px surface backing so no thin seam shows under the wave.
+    bodyFix: { flex: 1, marginTop: -1, backgroundColor: c.surface },
+
     locationSelector: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -475,23 +571,23 @@ const makeStyles = (c: Palette) =>
       width: 32,
       height: 32,
       borderRadius: 10,
-      backgroundColor: c.primary,
+      backgroundColor: '#FFFFFF',
       alignItems: 'center',
       justifyContent: 'center',
     },
     locationTextWrap: { flex: 1 },
-    locationLabel: { fontSize: 11, color: c.textMuted, marginBottom: 1 },
+    locationLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginBottom: 1 },
     locationValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    locationValue: { fontSize: 15, color: c.text, fontWeight: '700' },
+    locationValue: { fontSize: 15, color: '#FFFFFF', fontWeight: '700' },
     notificationBtn: {
       width: 42,
       height: 42,
       borderRadius: 14,
-      backgroundColor: c.surface,
+      backgroundColor: 'rgba(255,255,255,0.18)',
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: c.border,
+      borderColor: 'rgba(255,255,255,0.25)',
     },
     notificationDot: {
       position: 'absolute',
@@ -575,24 +671,32 @@ const makeStyles = (c: Palette) =>
     // ─── Search ───
     searchSection: {
       paddingHorizontal: spacing.md + 4,
-      marginTop: spacing.sm,
-    },
-    greeting: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: c.text,
-      marginBottom: spacing.sm + 2,
+      marginTop: spacing.xs,
     },
     searchBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: c.surface,
+      backgroundColor: c.background,
       borderRadius: 14,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 14,
+      paddingLeft: 8,
+      paddingRight: spacing.md,
+      paddingVertical: 8,
       gap: 10,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: c.border,
+      shadowColor: c.primary,
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    searchIconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: c.primaryMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     searchInput: {
       flex: 1,
@@ -625,26 +729,42 @@ const makeStyles = (c: Palette) =>
       flexWrap: 'wrap',
       paddingHorizontal: GRID_PADDING,
     },
+    // White photo card: image fills the top, speciality name below in dark text.
     categoryCard: {
       width: CATEGORY_CARD_SIZE,
-      alignItems: 'center',
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.xs,
+      backgroundColor: c.background,
       borderRadius: 16,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: 'transparent',
+      shadowColor: c.primary,
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
     },
-    categoryIconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 16,
+    // Selected speciality: purple ring.
+    categoryCardActive: { borderColor: c.primary, shadowOpacity: 0.28 },
+    categoryImage: {
+      width: '100%',
+      height: 88,
+      backgroundColor: c.primaryMuted,
+    },
+    categoryFallback: {
+      width: '100%',
+      height: 88,
+      backgroundColor: c.primaryMuted,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: spacing.sm,
     },
     categoryLabel: {
-      fontSize: 11,
-      fontWeight: '600',
+      fontSize: 11.5,
+      fontWeight: '700',
       textAlign: 'center',
-      lineHeight: 14,
+      lineHeight: 15,
+      color: c.text,
+      paddingVertical: 9,
+      paddingHorizontal: 4,
     },
 
     // ─── Filter Chips ───

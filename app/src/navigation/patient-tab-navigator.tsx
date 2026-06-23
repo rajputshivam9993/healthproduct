@@ -1,6 +1,6 @@
 import React from 'react';
-import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarDays, Home, User } from 'lucide-react-native';
 import { PatientHomeScreen } from '../screens/patient/home-screen';
 import { PatientAppointmentsScreen } from '../screens/patient/appointments-screen';
@@ -12,6 +12,10 @@ const Tab = createBottomTabNavigator();
 
 export function PatientTabNavigator() {
   const c = usePalette();
+  // Respect the device's bottom safe-area inset (Android gesture/nav bar,
+  // iOS home indicator) so the tab bar never sits under the system buttons.
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom;
   return (
     <Tab.Navigator
       screenOptions={{
@@ -21,8 +25,8 @@ export function PatientTabNavigator() {
         tabBarStyle: {
           backgroundColor: c.background,
           borderTopColor: c.border,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          height: 64 + bottomInset,
+          paddingBottom: bottomInset + 8,
           paddingTop: 8,
           elevation: 8,
           shadowColor: '#000',

@@ -63,6 +63,9 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
           database: config.get<string>('database.database'),
           autoLoadEntities: true,
           synchronize: false,
+          ssl: config.get<string>('database.ssl') === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
         };
       },
     }),
@@ -99,4 +102,4 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
-export class AppModule {}
+export class AppModule { }

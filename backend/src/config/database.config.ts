@@ -16,6 +16,7 @@ export const databaseConfig = registerAs('database', () => ({
   username: process.env.DB_USERNAME ?? 'doctor360',
   password: process.env.DB_PASSWORD ?? 'doctor360',
   database: process.env.DB_NAME ?? 'doctor360',
+  ssl: process.env.DB_SSL,
   // SQLite (sql.js) file location for dev
   sqliteFile: process.env.SQLITE_FILE ?? 'doctor360.dev.sqlite',
 }));

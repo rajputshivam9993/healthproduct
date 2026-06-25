@@ -12,6 +12,7 @@ import { AppointmentStatus, ConsultationType } from './enums';
 import { enumColumn, timestampColumn } from './column-helpers';
 import { AvailabilitySlot } from './availability-slot.entity';
 import { DoctorProfile } from './doctor-profile.entity';
+import { PatientDetail } from './patient-detail.entity';
 import { User } from './user.entity';
 
 /**
@@ -46,6 +47,13 @@ export class Appointment {
   @ManyToOne(() => AvailabilitySlot, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'slotId' })
   slot!: AvailabilitySlot;
+
+  @Column({ type: 'uuid', nullable: true })
+  patientDetailId!: string | null;
+
+  @ManyToOne(() => PatientDetail, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'patientDetailId' })
+  patientDetail!: PatientDetail | null;
 
   @Column(enumColumn(AppointmentStatus, { default: AppointmentStatus.PENDING_PAYMENT }))
   status!: AppointmentStatus;

@@ -7,6 +7,7 @@ export type VideoCallParams = { appointmentId: string; peerName: string };
 export type PatientStackParamList = {
   Tabs: undefined;
   DoctorBooking: { doctorId: string; name: string };
+  PatientDetail: { slotId: string };
   VideoCall: VideoCallParams;
   Chat: { appointmentId: string; peerName: string };
   ReviewSubmit: { appointmentId: string; doctorName: string };

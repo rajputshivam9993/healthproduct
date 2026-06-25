@@ -9,7 +9,11 @@ export function useUpdatePatientProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdatePatientPayload) => userService.updateMe(payload),
-    onSuccess: (data) => qc.setQueryData(['me'], data),
+    onSuccess: (data) => {
+      qc.setQueryData(['me'], data);
+      // Invalidate patient-details so the auto-created record appears in booking
+      qc.invalidateQueries({ queryKey: ['patient-details'] });
+    },
   });
 }
 

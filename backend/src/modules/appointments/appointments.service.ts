@@ -38,7 +38,7 @@ export class AppointmentsService {
   ) {}
 
   /** Books an available slot, creating a PENDING_PAYMENT appointment + order (Req 7.1-7.3, 7.7). */
-  async book(patientId: string, slotId: string): Promise<{ appointment: Appointment; order: RazorpayOrder }> {
+  async book(patientId: string, slotId: string, patientDetailId?: string): Promise<{ appointment: Appointment; order: RazorpayOrder }> {
     const slot = await this.slots.findOne({ where: { id: slotId } });
     if (!slot) {
       throw new NotFoundException('Slot not found');
@@ -67,6 +67,7 @@ export class AppointmentsService {
         patientId,
         doctorId: slot.doctorId,
         slotId: slot.id,
+        patientDetailId: patientDetailId ?? null,
         status: AppointmentStatus.PENDING_PAYMENT,
         consultationType: slot.consultationType,
         scheduledStart: slot.startTime,

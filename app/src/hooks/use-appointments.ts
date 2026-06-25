@@ -20,8 +20,8 @@ export function useBookAndPay() {
   const qc = useQueryClient();
   return useMutation({
     // Books the slot then (dev) confirms payment so the appointment is CONFIRMED.
-    mutationFn: async (slotId: string) => {
-      const { appointment } = await appointmentService.book(slotId);
+    mutationFn: async ({ slotId, patientDetailId }: { slotId: string; patientDetailId?: string }) => {
+      const { appointment } = await appointmentService.book(slotId, patientDetailId);
       return appointmentService.confirmPayment(appointment.id);
     },
     onSuccess: () => {

@@ -42,3 +42,8 @@ Thumbs.db
 # Misc
 coverage/
 .cache/
+
+# Docker
+docker-compose.yml
+
+

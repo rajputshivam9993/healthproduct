@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
-  Alert,
   SectionList,
   StyleSheet,
   Text,
@@ -9,38 +8,27 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRoute, type RouteProp } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
-import { CheckCircle2, Clock, MapPin, Video } from 'lucide-react-native';
-import { useAvailableSlots, useBookAndPay } from '../../hooks/use-appointments';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { Clock, MapPin, Video } from 'lucide-react-native';
+import { useAvailableSlots } from '../../hooks/use-appointments';
 import type { Slot } from '../../services/slot-service';
-import type { PatientStackParamList } from '../../navigation/types';
+import type { PatientStackParamList, PatientNav } from '../../navigation/types';
 import { radius, spacing, typography, type Palette } from '../../theme';
 import { usePalette, useThemedStyles } from '../../theme/theme-context';
 
-/** Patient booking: pick an available slot, book, and pay (Req 7, 8). */
+/** Patient booking: pick an available slot, then proceed to patient details (Req 7, 8). */
 export function DoctorBookingScreen() {
   const route = useRoute<RouteProp<PatientStackParamList, 'DoctorBooking'>>();
+  const navigation = useNavigation<PatientNav>();
   const { doctorId } = route.params;
   const c = usePalette();
   const styles = useThemedStyles(makeStyles);
   const { data: slots, isLoading } = useAvailableSlots(doctorId);
-  const bookAndPay = useBookAndPay();
-  const [selected, setSelected] = useState<string | null>(null);
 
   const sections = groupByDate(slots ?? []);
 
-  const confirm = async () => {
-    if (!selected) return;
-    try {
-      await bookAndPay.mutateAsync(selected);
-      // Haptic confirmation on successful booking + payment (Req 18.9).
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Booked!', 'Your appointment is confirmed. See it under Appointments.');
-      setSelected(null);
-    } catch (err) {
-      Alert.alert('Booking failed', extractError(err));
-    }
+  const handleSlotPress = (slotId: string) => {
+    navigation.navigate('PatientDetail', { slotId });
   };
 
   if (isLoading) {
@@ -65,38 +53,20 @@ export function DoctorBookingScreen() {
           </View>
         }
         renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
-        renderItem={({ item }) => {
-          const active = selected === item.id;
-          return (
-            <TouchableOpacity
-              style={[styles.slot, active && styles.slotActive]}
-              onPress={() => setSelected(item.id)}
-            >
-              {item.consultationType === 'VIDEO' ? (
-                <Video color={active ? '#fff' : c.primary} size={18} />
-              ) : (
-                <MapPin color={active ? '#fff' : c.accent} size={18} />
-              )}
-              <Text style={[styles.slotText, active && styles.slotTextActive]}>{fmtTime(item.startTime)}</Text>
-              {active && <CheckCircle2 color="#fff" size={18} />}
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.slot}
+            onPress={() => handleSlotPress(item.id)}
+          >
+            {item.consultationType === 'VIDEO' ? (
+              <Video color={c.primary} size={18} />
+            ) : (
+              <MapPin color={c.accent} size={18} />
+            )}
+            <Text style={styles.slotText}>{fmtTime(item.startTime)}</Text>
+          </TouchableOpacity>
+        )}
       />
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.cta, (!selected || bookAndPay.isPending) && styles.ctaDisabled]}
-          onPress={confirm}
-          disabled={!selected || bookAndPay.isPending}
-        >
-          {bookAndPay.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.ctaText}>Book & Pay</Text>
-          )}
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -113,10 +83,6 @@ function groupByDate(slots: Slot[]) {
 const fmtTime = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
-function extractError(err: unknown): string {
-  return (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Try again.';
-}
-
 const makeStyles = (c: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.surface },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
@@ -127,15 +93,6 @@ const makeStyles = (c: Palette) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: c.background,
     borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: c.border,
   },
-  slotActive: { backgroundColor: c.primary, borderColor: c.primary },
   slotText: { ...typography.body, color: c.text, flex: 1 },
-  slotTextActive: { color: '#fff', fontWeight: '600' },
   empty: { ...typography.body, color: c.textMuted, textAlign: 'center' },
-  footer: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.md,
-    backgroundColor: c.background, borderTopWidth: 1, borderTopColor: c.border,
-  },
-  cta: { backgroundColor: c.primary, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
-  ctaDisabled: { opacity: 0.5 },
-  ctaText: { ...typography.h3, color: '#fff' },
 });

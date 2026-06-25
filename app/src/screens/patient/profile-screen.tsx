@@ -6,11 +6,13 @@ import {
   Dimensions,
   Easing,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   Cake,
   Camera,
+  ChevronDown,
   ChevronRight,
   Droplet,
   FileText,
@@ -42,6 +45,9 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const WAVE_H = 46;
 const mediaBase = config.apiBaseUrl.replace('/api', '');
 
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
+const GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
+
 /** Compute whole-year age from a YYYY-MM-DD date string. */
 function ageFromDob(dob?: string): string {
   if (!dob) return '—';
@@ -52,6 +58,11 @@ function ageFromDob(dob?: string): string {
   const m = now.getMonth() - d.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
   return age >= 0 && age < 150 ? String(age) : '—';
+}
+
+/** Whether the profile has the essential fields filled. */
+function isProfileComplete(profile: { name?: string | null; dateOfBirth?: string | null; gender?: string | null } | null | undefined): boolean {
+  return !!(profile?.name && profile?.dateOfBirth && profile?.gender);
 }
 
 /** Patient profile: view + edit personal/medical details, prescriptions link (Req 4.1). */
@@ -67,6 +78,9 @@ export function PatientProfileScreen() {
   const [editing, setEditing] = useState(false);
 
   const [form, setForm] = useState({ name: '', dateOfBirth: '', gender: '', bloodGroup: '', allergies: '' });
+  const [showBloodGroupPicker, setShowBloodGroupPicker] = useState(false);
+
+  const profileComplete = isProfileComplete(profile);
 
   const pickAvatar = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -121,9 +135,15 @@ export function PatientProfileScreen() {
 
   const startEdit = () => {
     if (!profile) return;
+    // Convert stored YYYY-MM-DD to display DD-MM-YYYY
+    let displayDob = '';
+    if (profile.dateOfBirth) {
+      const parts = profile.dateOfBirth.split('-');
+      if (parts.length === 3) displayDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
     setForm({
       name: profile.name ?? '',
-      dateOfBirth: profile.dateOfBirth ?? '',
+      dateOfBirth: displayDob,
       gender: profile.gender ?? '',
       bloodGroup: profile.bloodGroup ?? '',
       allergies: profile.allergies ?? '',
@@ -131,18 +151,60 @@ export function PatientProfileScreen() {
     setEditing(true);
   };
 
+  /** Auto-format DOB input as DD-MM-YYYY with dashes inserted automatically. */
+  const handleDobChange = (text: string) => {
+    // Strip non-digits
+    const digits = text.replace(/[^0-9]/g, '').slice(0, 8);
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i === 2 || i === 4) formatted += '-';
+      formatted += digits[i];
+    }
+    setForm((f) => ({ ...f, dateOfBirth: formatted }));
+  };
+
+  /** Parse DD-MM-YYYY to YYYY-MM-DD for storage. Returns null if invalid. */
+  const parseDob = (display: string): string | null => {
+    const match = display.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (!match) return null;
+    const [, dd, mm, yyyy] = match;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    if (isNaN(d.getTime()) || d > new Date()) return null;
+    if (d.getDate() !== Number(dd) || d.getMonth() + 1 !== Number(mm)) return null;
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const save = async () => {
+    if (!form.name.trim()) {
+      Alert.alert('Required', 'Please enter your name.');
+      return;
+    }
+    if (!form.dateOfBirth) {
+      Alert.alert('Required', 'Please enter your date of birth.');
+      return;
+    }
+    const storedDob = parseDob(form.dateOfBirth);
+    if (!storedDob) {
+      Alert.alert('Invalid Date', 'Please enter a valid date in DD-MM-YYYY format.');
+      return;
+    }
+    if (!form.gender) {
+      Alert.alert('Required', 'Please select your gender.');
+      return;
+    }
     try {
       await update.mutateAsync({
-        name: form.name || undefined,
-        dateOfBirth: form.dateOfBirth || undefined,
-        gender: form.gender || undefined,
+        name: form.name.trim(),
+        dateOfBirth: storedDob,
+        gender: form.gender,
         bloodGroup: form.bloodGroup || undefined,
         allergies: form.allergies || undefined,
       });
       setEditing(false);
-    } catch {
-      Alert.alert('Update failed', 'Please check your inputs and try again.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      const detail = Array.isArray(msg) ? msg.join(', ') : msg ?? 'Please check your inputs and try again.';
+      Alert.alert('Update failed', detail);
     }
   };
 
@@ -178,21 +240,6 @@ export function PatientProfileScreen() {
         <Text style={styles.name}>{profile?.name ?? 'Patient'}</Text>
         <Text style={styles.spec}>{profile?.phone ?? 'Phone not set'}</Text>
 
-        <View style={styles.badges}>
-          {profile?.bloodGroup ? (
-            <View style={styles.badgeChip}>
-              <Droplet color="#FFD479" size={14} fill="#FFD479" />
-              <Text style={styles.badgeChipText}>{profile.bloodGroup}</Text>
-            </View>
-          ) : null}
-          {profile?.gender ? (
-            <View style={styles.badgeChip}>
-              <VenusAndMars color="#FFFFFF" size={14} />
-              <Text style={styles.badgeChipText}>{profile.gender}</Text>
-            </View>
-          ) : null}
-        </View>
-
         <View style={styles.waveWrap} pointerEvents="none">
           <Svg width={SCREEN_W} height={WAVE_H} viewBox={`0 0 ${SCREEN_W} ${WAVE_H}`}>
             <Path
@@ -204,21 +251,105 @@ export function PatientProfileScreen() {
       </Animated.View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {!editing && (
-          <Animated.View style={[styles.statRow, rise(0)]}>
-            <StatCard icon={<Cake color={c.primary} size={18} />} value={ageFromDob(profile?.dateOfBirth ?? undefined)} label="Years old" />
-            <StatCard icon={<Droplet color={c.primary} size={18} />} value={profile?.bloodGroup ?? '—'} label="Blood group" />
-            <StatCard icon={<VenusAndMars color={c.primary} size={18} />} value={profile?.gender ?? '—'} label="Gender" />
-          </Animated.View>
-        )}
-
         {editing ? (
           <View style={styles.card}>
-            <EditField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-            <EditField label="Date of birth (YYYY-MM-DD)" value={form.dateOfBirth} onChange={(v) => setForm({ ...form, dateOfBirth: v })} />
-            <EditField label="Gender (MALE/FEMALE/OTHER)" value={form.gender} onChange={(v) => setForm({ ...form, gender: v.toUpperCase() })} />
-            <EditField label="Blood group" value={form.bloodGroup} onChange={(v) => setForm({ ...form, bloodGroup: v })} />
-            <EditField label="Allergies" value={form.allergies} multiline onChange={(v) => setForm({ ...form, allergies: v })} />
+            {/* Name (required) */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Name <Text style={styles.required}>*</Text></Text>
+              <TextInput
+                style={styles.input}
+                value={form.name}
+                onChangeText={(v) => setForm({ ...form, name: v })}
+                placeholder="Full name"
+                placeholderTextColor={c.textMuted}
+                autoCapitalize="words"
+              />
+            </View>
+
+            {/* Date of birth (required) — auto-formatted DD-MM-YYYY */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Date of birth <Text style={styles.required}>*</Text></Text>
+              <TextInput
+                style={styles.input}
+                value={form.dateOfBirth}
+                onChangeText={handleDobChange}
+                placeholder="DD-MM-YYYY"
+                placeholderTextColor={c.textMuted}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+
+            {/* Gender (required) — chip selector */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Gender <Text style={styles.required}>*</Text></Text>
+              <View style={styles.chipRow}>
+                {GENDERS.map((g) => (
+                  <TouchableOpacity
+                    key={g}
+                    style={[styles.chip, form.gender === g && styles.chipActive]}
+                    onPress={() => setForm({ ...form, gender: g })}
+                  >
+                    <Text style={[styles.chipText, form.gender === g && styles.chipTextActive]}>
+                      {g.charAt(0) + g.slice(1).toLowerCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Blood group — select dropdown */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Blood group</Text>
+              <TouchableOpacity style={styles.pickerButton} onPress={() => setShowBloodGroupPicker(true)}>
+                <Text style={[styles.pickerButtonText, !form.bloodGroup && { color: c.textMuted }]}>
+                  {form.bloodGroup || 'Select blood group'}
+                </Text>
+                <ChevronDown color={c.textMuted} size={18} />
+              </TouchableOpacity>
+              {showBloodGroupPicker && (
+                <Modal transparent animationType="fade">
+                  <Pressable style={styles.modalOverlay} onPress={() => setShowBloodGroupPicker(false)}>
+                    <View style={styles.dropdownContent}>
+                      <Text style={styles.dropdownTitle}>Select Blood Group</Text>
+                      <View style={styles.dropdownGrid}>
+                        {BLOOD_GROUPS.map((bg) => (
+                          <TouchableOpacity
+                            key={bg}
+                            style={[styles.dropdownItem, form.bloodGroup === bg && styles.dropdownItemActive]}
+                            onPress={() => { setForm({ ...form, bloodGroup: bg }); setShowBloodGroupPicker(false); }}
+                          >
+                            <Text style={[styles.dropdownItemText, form.bloodGroup === bg && styles.dropdownItemTextActive]}>
+                              {bg}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.dropdownClear}
+                        onPress={() => { setForm({ ...form, bloodGroup: '' }); setShowBloodGroupPicker(false); }}
+                      >
+                        <Text style={styles.dropdownClearText}>Clear selection</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Pressable>
+                </Modal>
+              )}
+            </View>
+
+            {/* Allergies — optional text */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Allergies</Text>
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                value={form.allergies}
+                onChangeText={(v) => setForm({ ...form, allergies: v })}
+                placeholder="Any known allergies"
+                placeholderTextColor={c.textMuted}
+                multiline
+              />
+            </View>
+
             <View style={styles.row}>
               <CtaButton style={styles.btnPrimary} onPress={save} disabled={update.isPending}>
                 {update.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnPrimaryText}>Save</Text>}
@@ -228,16 +359,34 @@ export function PatientProfileScreen() {
               </CtaButton>
             </View>
           </View>
+        ) : !profileComplete ? (
+          /* Incomplete profile — prompt to complete */
+          <Animated.View style={[styles.card, rise(0)]}>
+            <View style={styles.incompleteHeader}>
+              <ShieldAlert color={c.primary} size={22} />
+              <Text style={styles.incompleteTitle}>Complete your profile</Text>
+            </View>
+            <Text style={styles.incompleteDesc}>
+              Please fill in your personal details to book appointments and get the best experience.
+            </Text>
+            <CtaButton style={styles.btnPrimary} onPress={startEdit}>
+              <Pencil color="#fff" size={16} />
+              <Text style={styles.btnPrimaryText}>Complete Profile</Text>
+            </CtaButton>
+          </Animated.View>
         ) : (
+          /* Complete profile — show details */
           <Animated.View style={[styles.card, rise(1)]}>
             <DetailRow icon={<Phone color={c.primary} size={16} />} label="Phone" value={profile?.phone ?? '—'} />
             <DetailRow icon={<Mail color={c.primary} size={16} />} label="Email" value={profile?.email ?? '—'} />
             <DetailRow icon={<Cake color={c.primary} size={16} />} label="Date of birth" value={profile?.dateOfBirth ?? '—'} />
+            <DetailRow icon={<VenusAndMars color={c.primary} size={16} />} label="Gender" value={profile?.gender ?? '—'} />
+            <DetailRow icon={<Droplet color={c.primary} size={16} />} label="Blood group" value={profile?.bloodGroup ?? '—'} />
             <DetailRow icon={<ShieldAlert color={c.primary} size={16} />} label="Allergies" value={profile?.allergies ?? '—'} last />
 
             <CtaButton style={styles.btnPrimary} onPress={startEdit}>
               <Pencil color="#fff" size={16} />
-              <Text style={styles.btnPrimaryText}>Edit profile</Text>
+              <Text style={styles.btnPrimaryText}>Edit Profile</Text>
             </CtaButton>
           </Animated.View>
         )}
@@ -257,17 +406,6 @@ export function PatientProfileScreen() {
           </Pressable>
         </Animated.View>
       </ScrollView>
-    </View>
-  );
-}
-
-function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <View style={styles.statCard}>
-      <View style={styles.statIcon}>{icon}</View>
-      <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
-      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -312,34 +450,6 @@ function CtaButton({
   );
 }
 
-function EditField({
-  label,
-  value,
-  onChange,
-  multiline,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  multiline?: boolean;
-  keyboardType?: 'default' | 'number-pad';
-}) {
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <View style={styles.field}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <TextInput
-        style={[styles.input, multiline && styles.inputMultiline]}
-        value={value}
-        onChangeText={onChange}
-        multiline={multiline}
-        keyboardType={keyboardType ?? 'default'}
-      />
-    </View>
-  );
-}
-
 const makeStyles = (c: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.surface },
   flex: { flex: 1 },
@@ -360,29 +470,15 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   },
   name: { fontSize: 19, fontWeight: '700', color: '#FFFFFF', marginTop: 12 },
   spec: { fontSize: 13, color: 'rgba(255,255,255,0.78)', marginTop: 3 },
-  badges: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  badgeChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-  },
-  badgeChipText: { fontSize: 11.5, fontWeight: '600', color: '#FFFFFF' },
   waveWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 
   // content
   content: { padding: spacing.md, paddingBottom: spacing.xl },
 
-  // stat cards
-  statRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
-  statCard: {
-    flex: 1, backgroundColor: c.background, borderRadius: radius.lg, paddingVertical: spacing.md,
-    alignItems: 'center', borderWidth: 1, borderColor: c.border,
-  },
-  statIcon: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: c.primaryMuted,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-  },
-  statValue: { fontSize: 16, fontWeight: '700', color: c.text },
-  statLabel: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+  // incomplete profile prompt
+  incompleteHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  incompleteTitle: { fontSize: 16, fontWeight: '700', color: c.text },
+  incompleteDesc: { fontSize: 14, color: c.textMuted, marginBottom: spacing.sm, lineHeight: 20 },
 
   // detail card
   card: {
@@ -398,11 +494,44 @@ const makeStyles = (c: Palette) => StyleSheet.create({
 
   // edit form
   field: { marginBottom: spacing.md },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: c.textMuted, marginBottom: 6 },
+  required: { color: c.danger },
   input: {
     fontSize: 14, color: c.text, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface,
     borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: 4,
   },
   inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
+  pickerButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface,
+    borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
+  },
+  pickerButtonText: { fontSize: 14, color: c.text },
+  chipRow: { flexDirection: 'row', gap: spacing.sm },
+  chip: {
+    flex: 1, alignItems: 'center', paddingVertical: spacing.sm + 2,
+    borderRadius: radius.sm, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface,
+  },
+  chipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  chipText: { fontSize: 13, fontWeight: '600', color: c.text },
+  chipTextActive: { color: '#fff' },
+  // modal / dropdown
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  dropdownContent: {
+    backgroundColor: c.background, borderRadius: radius.lg, margin: spacing.lg, padding: spacing.md, width: '85%',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
+  },
+  dropdownTitle: { fontSize: 15, fontWeight: '700', color: c.text, marginBottom: spacing.md, textAlign: 'center' },
+  dropdownGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
+  dropdownItem: {
+    width: '21%', alignItems: 'center', paddingVertical: spacing.sm + 4,
+    borderRadius: radius.sm, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface,
+  },
+  dropdownItemActive: { backgroundColor: c.primary, borderColor: c.primary },
+  dropdownItemText: { fontSize: 14, fontWeight: '600', color: c.text },
+  dropdownItemTextActive: { color: '#fff' },
+  dropdownClear: { alignItems: 'center', marginTop: spacing.md, paddingVertical: spacing.sm },
+  dropdownClearText: { fontSize: 13, color: c.textMuted },
   row: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
 
   // buttons

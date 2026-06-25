@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { Gender } from '../../../entities/enums';
 
 /** Patient self-service profile update (Req 4.1). */
@@ -9,7 +9,7 @@ export class UpdatePatientProfileDto {
   name?: string;
 
   @IsOptional()
-  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dateOfBirth must be in YYYY-MM-DD format' })
   dateOfBirth?: string;
 
   @IsOptional()

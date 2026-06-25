@@ -14,7 +14,7 @@ export class AppointmentsController {
   @Roles(UserRole.PATIENT)
   @Post()
   book(@CurrentUser('id') patientId: string, @Body() dto: CreateAppointmentDto) {
-    return this.appointmentsService.book(patientId, dto.slotId);
+    return this.appointmentsService.book(patientId, dto.slotId, dto.patientDetailId);
   }
 
   @Get()

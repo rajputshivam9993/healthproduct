@@ -26,6 +26,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PatientsModule } from './modules/patients/patients.module';
 
 /**
  * Root module. Wires configuration, the database connection, rate limiting, the
@@ -89,6 +90,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     ReviewsModule,
     NotificationsModule,
     AnalyticsModule,
+    PatientsModule,
   ],
   providers: [
     // Rate limiting on all routes (Req 15.4).

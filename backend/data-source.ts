@@ -19,7 +19,5 @@ export default new DataSource({
   migrations: ['src/migrations/*.{ts,js}'],
   synchronize: false,
   logging: ['error', 'migration'],
-  ssl: {
-    rejectUnauthorized: false
-  },
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });

@@ -30,8 +30,8 @@ export const appointmentService = {
       .get(`/doctors/${doctorId}/available-slots`, { params: { from, to } })
       .then((r) => r.data);
   },
-  book(slotId: string): Promise<BookResponse> {
-    return apiClient.post('/appointments', { slotId }).then((r) => r.data);
+  book(slotId: string, patientDetailId?: string): Promise<BookResponse> {
+    return apiClient.post('/appointments', { slotId, patientDetailId }).then((r) => r.data);
   },
   confirmPayment(appointmentId: string): Promise<Appointment> {
     return apiClient.post('/payments/confirm', { appointmentId }).then((r) => r.data);

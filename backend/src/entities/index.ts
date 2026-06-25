@@ -5,6 +5,7 @@ export * from './doctor-profile.entity';
 export * from './specialization.entity';
 export * from './availability-slot.entity';
 export * from './appointment.entity';
+export * from './patient-detail.entity';
 export * from './prescription.entity';
 export * from './review.entity';
 export * from './chat.entity';

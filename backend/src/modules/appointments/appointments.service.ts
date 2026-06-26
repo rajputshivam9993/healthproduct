@@ -94,6 +94,9 @@ export class AppointmentsService {
       .leftJoinAndSelect('a.doctor', 'doctor')
       .leftJoinAndSelect('doctor.user', 'doctorUser')
       .leftJoinAndSelect('a.slot', 'slot')
+      .leftJoinAndSelect('a.patientDetail', 'patientDetail')
+      .leftJoinAndSelect('a.review', 'review')
+      .leftJoinAndSelect('a.prescription', 'prescription')
       .orderBy('a.scheduledStart', 'DESC');
 
     if (user.role === UserRole.PATIENT) {
@@ -184,14 +187,14 @@ export class AppointmentsService {
     return token;
   }
 
-  /** Ends the consultation (IN_PROGRESS → COMPLETED) (Req 9.5). */
+  /** Ends the consultation but keeps IN_PROGRESS until prescription is added (Req 9.5). */
   async complete(id: string, user: AuthUser): Promise<Appointment> {
     const appointment = await this.getOne(id, user);
     if (appointment.status !== AppointmentStatus.IN_PROGRESS) {
       throw new ConflictException('Only an in-progress consultation can be completed');
     }
-    appointment.status = AppointmentStatus.COMPLETED;
-    return this.appointments.save(appointment);
+    // Status remains IN_PROGRESS; transitions to COMPLETED when prescription is added.
+    return appointment;
   }
 
   /** Builds an Agora token for VIDEO appointments; patient uid=1, doctor uid=2. */

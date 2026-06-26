@@ -46,14 +46,14 @@ export class PrescriptionsService {
       // Only the assigned doctor may prescribe (Req 10.2).
       throw new ForbiddenException('You are not the assigned doctor for this appointment');
     }
-    if (appointment.status !== AppointmentStatus.COMPLETED) {
-      throw new UnprocessableEntityException('Appointment must be COMPLETED to add a prescription');
+    if (appointment.status !== AppointmentStatus.IN_PROGRESS && appointment.status !== AppointmentStatus.COMPLETED) {
+      throw new UnprocessableEntityException('Appointment must be IN_PROGRESS or COMPLETED to add a prescription');
     }
     if (await this.prescriptions.findOne({ where: { appointmentId: dto.appointmentId } })) {
       throw new ConflictException('A prescription already exists for this appointment');
     }
 
-    return this.prescriptions.save(
+    const prescription = await this.prescriptions.save(
       this.prescriptions.create({
         appointmentId: appointment.id,
         doctorId: appointment.doctorId,
@@ -62,6 +62,14 @@ export class PrescriptionsService {
         notes: dto.notes ?? null,
       }),
     );
+
+    // Mark appointment as COMPLETED now that prescription is added.
+    if (appointment.status === AppointmentStatus.IN_PROGRESS) {
+      appointment.status = AppointmentStatus.COMPLETED;
+      await this.appointments.save(appointment);
+    }
+
+    return prescription;
   }
 
   /** Patient's prescription history, newest first (Req 10.3). */
@@ -70,6 +78,7 @@ export class PrescriptionsService {
     const pageSize = query.pageSize ?? 20;
     const [items, total] = await this.prescriptions.findAndCount({
       where: { patientId },
+      relations: { doctor: { user: true }, patient: true },
       order: { createdAt: 'DESC' },
       take: pageSize,
       skip: (page - 1) * pageSize,

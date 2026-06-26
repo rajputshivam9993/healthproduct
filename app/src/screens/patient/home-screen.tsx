@@ -33,6 +33,7 @@ import {
   Baby,
   Bone,
   Activity,
+  User,
 } from 'lucide-react-native';
 import { DoctorCard } from '../../components/doctor-card';
 import { SkeletonCard } from '../../components/skeleton';
@@ -139,6 +140,21 @@ export function PatientHomeScreen() {
     },
     true,
   );
+
+  // Filter specializations and doctors for search suggestions
+  const searchTerm = searchText.trim().toLowerCase();
+  type Suggestion = { type: 'specialization'; value: string } | { type: 'doctor'; id: string; name: string; specialization: string | null };
+  const searchSuggestions: Suggestion[] = searchTerm.length >= 1
+    ? [
+        ...allSpecializations
+          .filter((s) => s.toLowerCase().includes(searchTerm))
+          .map((s): Suggestion => ({ type: 'specialization', value: s })),
+        ...((data?.items ?? [])
+          .filter((d) => d.name?.toLowerCase().includes(searchTerm))
+          .slice(0, 5)
+          .map((d): Suggestion => ({ type: 'doctor', id: d.id, name: d.name ?? 'Doctor', specialization: d.specialization }))),
+      ]
+    : [];
 
   const selectCity = (city: (typeof CITY_OPTIONS)[number]) => {
     setLocation({
@@ -348,10 +364,55 @@ export function PatientHomeScreen() {
             )}
 
 
+            {/* ─── Search suggestions dropdown ─── */}
+            {searchSuggestions.length > 0 && (
+              <View style={styles.suggestionsDropdown}>
+                {searchSuggestions.map((item, idx) =>
+                  item.type === 'specialization' ? (
+                    <TouchableOpacity
+                      key={`spec-${item.value}`}
+                      style={styles.suggestionItem}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        setSpecialization(item.value);
+                        setSearchText('');
+                      }}
+                    >
+                      <View style={styles.suggestionIconSpec}>
+                        <Stethoscope color={c.primary} size={13} />
+                      </View>
+                      <View style={styles.suggestionContent}>
+                        <Text style={styles.suggestionText}>{item.value}</Text>
+                        <Text style={styles.suggestionLabel}>Speciality</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      key={`doc-${item.id}`}
+                      style={styles.suggestionItem}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        navigation.navigate('DoctorBooking', { doctorId: item.id, name: item.name });
+                        setSearchText('');
+                      }}
+                    >
+                      <View style={styles.suggestionIconDoc}>
+                        <User color="#fff" size={13} />
+                      </View>
+                      <View style={styles.suggestionContent}>
+                        <Text style={styles.suggestionText}>{item.name}</Text>
+                        <Text style={styles.suggestionLabel}>{item.specialization ?? 'Doctor'}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ),
+                )}
+              </View>
+            )}
+
             {/* ─── Categories (3 per row) ─── */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Speciality</Text>
-              <TouchableOpacity onPress={() => setSpecialization(null)}>
+              <TouchableOpacity onPress={() => navigation.navigate('Specialities')}>
                 <Text style={styles.seeAll}>See All</Text>
               </TouchableOpacity>
             </View>
@@ -667,6 +728,49 @@ const makeStyles = (c: Palette) =>
     cityOptionActive: { backgroundColor: c.primaryMuted },
     cityOptionText: { fontSize: 14, color: c.text },
     cityOptionTextActive: { color: c.primary, fontWeight: '600' },
+
+    // ─── Search suggestions ───
+    suggestionsDropdown: {
+      marginHorizontal: spacing.md + 4,
+      marginBottom: spacing.md,
+      backgroundColor: c.background,
+      borderRadius: 14,
+      padding: spacing.sm,
+      elevation: 6,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 3 },
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    suggestionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.sm + 4,
+      borderRadius: 10,
+    },
+    suggestionIconSpec: {
+      width: 30,
+      height: 30,
+      borderRadius: 8,
+      backgroundColor: c.primaryMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    suggestionIconDoc: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: c.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    suggestionContent: { flex: 1 },
+    suggestionText: { fontSize: 14, color: c.text, fontWeight: '600' },
+    suggestionLabel: { fontSize: 11, color: c.textMuted, marginTop: 1 },
 
     // ─── Search ───
     searchSection: {

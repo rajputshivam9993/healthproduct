@@ -5,6 +5,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,6 +14,8 @@ import { enumColumn, timestampColumn } from './column-helpers';
 import { AvailabilitySlot } from './availability-slot.entity';
 import { DoctorProfile } from './doctor-profile.entity';
 import { PatientDetail } from './patient-detail.entity';
+import { Prescription } from './prescription.entity';
+import { Review } from './review.entity';
 import { User } from './user.entity';
 
 /**
@@ -80,6 +83,12 @@ export class Appointment {
 
   @Column({ type: 'text', nullable: true })
   refundStatus!: string | null;
+
+  @OneToOne(() => Review, (review) => review.appointment, { nullable: true })
+  review?: Review | null;
+
+  @OneToOne(() => Prescription, (prescription) => prescription.appointment, { nullable: true })
+  prescription?: Prescription | null;
 
   @CreateDateColumn(timestampColumn())
   createdAt!: Date;

@@ -13,6 +13,17 @@ export interface Prescription {
   medications: Medication[];
   notes: string | null;
   createdAt: string;
+  doctor?: {
+    qualification: string | null;
+    degree: string | null;
+    specialization: string | null;
+    user?: { name: string | null };
+  };
+  patient?: {
+    name: string | null;
+    dateOfBirth: string | null;
+    gender: string | null;
+  };
 }
 
 export interface PaginatedPrescriptions {

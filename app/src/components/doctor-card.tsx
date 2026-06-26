@@ -99,6 +99,7 @@ const makeStyles = (c: Palette) =>
       backgroundColor: c.primaryMuted,
       alignItems: 'center',
       justifyContent: 'center',
+      alignSelf: 'center',
       marginRight: spacing.md,
     },
     onlineDot: {

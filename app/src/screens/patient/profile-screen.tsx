@@ -23,9 +23,7 @@ import {
   Cake,
   Camera,
   ChevronDown,
-  ChevronRight,
   Droplet,
-  FileText,
   LogOut,
   Mail,
   Pencil,
@@ -77,7 +75,7 @@ export function PatientProfileScreen() {
   const uploadAvatar = useUploadAvatar();
   const [editing, setEditing] = useState(false);
 
-  const [form, setForm] = useState({ name: '', dateOfBirth: '', gender: '', bloodGroup: '', allergies: '' });
+  const [form, setForm] = useState({ name: '', email: '', dateOfBirth: '', gender: '', bloodGroup: '', allergies: '' });
   const [showBloodGroupPicker, setShowBloodGroupPicker] = useState(false);
 
   const profileComplete = isProfileComplete(profile);
@@ -143,6 +141,7 @@ export function PatientProfileScreen() {
     }
     setForm({
       name: profile.name ?? '',
+      email: profile.email ?? '',
       dateOfBirth: displayDob,
       gender: profile.gender ?? '',
       bloodGroup: profile.bloodGroup ?? '',
@@ -195,6 +194,7 @@ export function PatientProfileScreen() {
     try {
       await update.mutateAsync({
         name: form.name.trim(),
+        email: form.email.trim() || undefined,
         dateOfBirth: storedDob,
         gender: form.gender,
         bloodGroup: form.bloodGroup || undefined,
@@ -263,6 +263,21 @@ export function PatientProfileScreen() {
                 placeholder="Full name"
                 placeholderTextColor={c.textMuted}
                 autoCapitalize="words"
+              />
+            </View>
+
+            {/* Email (optional) */}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={form.email}
+                onChangeText={(v) => setForm({ ...form, email: v })}
+                placeholder="Email address"
+                placeholderTextColor={c.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
             </View>
 
@@ -392,14 +407,6 @@ export function PatientProfileScreen() {
         )}
 
         <Animated.View style={rise(2)}>
-          <Pressable style={styles.link} onPress={() => navigation.navigate('Prescriptions')}>
-            <View style={styles.detailIcon}>
-              <FileText color={c.primary} size={16} />
-            </View>
-            <Text style={styles.linkText}>My Prescriptions</Text>
-            <ChevronRight color={c.textMuted} size={18} />
-          </Pressable>
-
           <Pressable style={styles.logout} onPress={logout}>
             <LogOut color={c.danger} size={18} />
             <Text style={styles.logoutText}>Log out</Text>
@@ -543,13 +550,6 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   btnPrimaryText: { fontSize: 14.5, fontWeight: '700', color: '#fff' },
   btnGhost: { backgroundColor: c.primaryMuted },
   btnGhostText: { fontSize: 14.5, fontWeight: '700', color: c.primary },
-
-  // prescriptions link
-  link: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: c.background,
-    borderRadius: radius.lg, padding: spacing.md, marginTop: spacing.md, borderWidth: 1, borderColor: c.border,
-  },
-  linkText: { fontSize: 14, fontWeight: '600', color: c.text, flex: 1 },
 
   // footer
   settingsLabel: { fontSize: 10.5, fontWeight: '600', letterSpacing: 0.8, color: c.textMuted, marginTop: spacing.lg, marginBottom: spacing.sm },

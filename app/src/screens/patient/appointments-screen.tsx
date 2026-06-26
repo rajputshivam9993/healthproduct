@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Animated, Dimensions, Easing, FlatList, Style
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
-import { CalendarX, Video, MapPin, PhoneCall, MessageSquare, Star, Clock, CalendarDays } from 'lucide-react-native';
+import { CalendarX, Video, MapPin, PhoneCall, MessageSquare, Star, Clock, CalendarDays, User, FileText } from 'lucide-react-native';
 import { useAppointments, useCancelAppointment } from '../../hooks/use-appointments';
 import { AppointmentStatusBadge } from '../../components/appointment-status-badge';
 import type { PatientNav } from '../../navigation/types';
@@ -110,11 +110,13 @@ export function PatientAppointmentsScreen() {
           renderItem={({ item }) => {
             const cancellable = item.status === 'CONFIRMED' || item.status === 'PENDING_PAYMENT';
             const name = item.doctor?.user?.name ?? 'Doctor';
+            const patientName = item.patientDetail?.name ?? null;
             const isVideo = item.consultationType === 'VIDEO';
             const when = new Date(item.scheduledStart);
             const canJoin = isVideo && (item.status === 'CONFIRMED' || item.status === 'IN_PROGRESS');
             const canMessage = item.status === 'CONFIRMED' || item.status === 'IN_PROGRESS';
-            const canRate = item.status === 'COMPLETED';
+            const canRate = item.status === 'COMPLETED' && !item.review;
+            const hasRated = item.status === 'COMPLETED' && !!item.review;
             const hasActions = canJoin || canMessage || canRate || cancellable;
 
             return (
@@ -148,6 +150,12 @@ export function PatientAppointmentsScreen() {
                       {when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                     </Text>
                   </View>
+                  {patientName && (
+                    <View style={styles.metaItem}>
+                      <User color={c.primary} size={14} />
+                      <Text style={styles.patientName}>{patientName}</Text>
+                    </View>
+                  )}
                 </View>
 
                 {hasActions && (
@@ -188,6 +196,44 @@ export function PatientAppointmentsScreen() {
                       <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.7} onPress={() => onCancel(item.id)}>
                         <Text style={styles.cancel}>Cancel</Text>
                       </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {hasRated && (
+                  <View style={styles.ratedRow}>
+                    <Star color="#F5A623" size={14} fill="#F5A623" />
+                    <Text style={styles.ratedText}>You rated {item.review!.rating} ★</Text>
+                    <View style={styles.ratedSpacer} />
+                    {item.prescription ? (
+                      <TouchableOpacity
+                        style={styles.prescriptionBtn}
+                        activeOpacity={0.7}
+                        onPress={() => navigation.navigate('Prescriptions')}
+                      >
+                        <FileText color={c.primary} size={13} />
+                        <Text style={styles.prescriptionBtnText}>View Prescription</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={styles.prescriptionPending}>Prescription Pending</Text>
+                    )}
+                  </View>
+                )}
+
+                {!hasRated && item.status === 'COMPLETED' && (
+                  <View style={styles.ratedRow}>
+                    <View style={styles.ratedSpacer} />
+                    {item.prescription ? (
+                      <TouchableOpacity
+                        style={styles.prescriptionBtn}
+                        activeOpacity={0.7}
+                        onPress={() => navigation.navigate('Prescriptions')}
+                      >
+                        <FileText color={c.primary} size={13} />
+                        <Text style={styles.prescriptionBtnText}>View Prescription</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={styles.prescriptionPending}>Prescription Pending</Text>
                     )}
                   </View>
                 )}
@@ -278,6 +324,33 @@ const makeStyles = (c: Palette) =>
     },
     metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     metaText: { ...typography.caption, color: c.text, fontWeight: '600' },
+
+    // ─── Patient name ───
+    patientName: { ...typography.caption, color: c.primary, fontWeight: '700' },
+
+    // ─── Rated ───
+    ratedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+    },
+    ratedText: { ...typography.caption, color: '#F5A623', fontWeight: '700' },
+    ratedSpacer: { flex: 1 },
+    prescriptionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: radius.pill,
+      backgroundColor: c.primaryMuted,
+    },
+    prescriptionBtnText: { ...typography.caption, color: c.primary, fontWeight: '700' },
+    prescriptionPending: { ...typography.caption, color: c.textMuted, fontStyle: 'italic' },
 
     // ─── Actions ───
     actions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },

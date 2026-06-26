@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PatientTabNavigator } from './patient-tab-navigator';
 import { DoctorBookingScreen } from '../screens/patient/doctor-booking-screen';
 import { PatientDetailScreen } from '../screens/patient/patient-detail-screen';
+import { SpecialitiesScreen } from '../screens/patient/specialities-screen';
 import { VideoCallScreen } from '../screens/shared/video-call-screen';
 import { ChatScreen } from '../screens/shared/chat-screen';
 import { ReviewSubmitScreen } from '../screens/patient/review-submit-screen';
@@ -31,6 +32,11 @@ export function PatientStackNavigator() {
         name="PatientDetail"
         component={PatientDetailScreen}
         options={{ title: 'Patient Details' }}
+      />
+      <Stack.Screen
+        name="Specialities"
+        component={SpecialitiesScreen}
+        options={{ title: 'Specialities' }}
       />
       <Stack.Screen
         name="VideoCall"

@@ -59,6 +59,7 @@ export class UsersService {
     const wasIncomplete = !user.name || !user.dateOfBirth || !user.gender;
 
     if (dto.name !== undefined) user.name = dto.name;
+    if (dto.email !== undefined) user.email = dto.email;
     if (dto.dateOfBirth !== undefined) user.dateOfBirth = dto.dateOfBirth;
     if (dto.gender !== undefined) user.gender = dto.gender;
     if (dto.bloodGroup !== undefined) user.bloodGroup = dto.bloodGroup;

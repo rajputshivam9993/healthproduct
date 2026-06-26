@@ -16,6 +16,9 @@ export interface Appointment {
   scheduledEnd: string;
   doctor?: { user?: { name: string | null } };
   patient?: { name: string | null };
+  patientDetail?: { id: string; name: string; age: number; gender: string } | null;
+  review?: { id: string; rating: number; comment: string | null } | null;
+  prescription?: { id: string } | null;
 }
 
 export interface BookResponse {

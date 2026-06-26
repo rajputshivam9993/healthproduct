@@ -75,8 +75,11 @@ export function PatientDetailScreen() {
     try {
       await bookAndPay.mutateAsync({ slotId, patientDetailId: selectedId });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Booked!', 'Your appointment is confirmed. See it under Appointments.', [
-        { text: 'OK', onPress: () => navigation.navigate('Tabs') },
+      Alert.alert('Booked!', 'Your appointment is confirmed.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('Tabs', { screen: 'Appointments' } as any),
+        },
       ]);
     } catch (err) {
       Alert.alert('Booking failed', extractError(err));

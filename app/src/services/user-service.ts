@@ -14,6 +14,7 @@ export interface PatientProfile {
 
 export interface UpdatePatientPayload {
   name?: string;
+  email?: string;
   dateOfBirth?: string;
   gender?: string;
   bloodGroup?: string;

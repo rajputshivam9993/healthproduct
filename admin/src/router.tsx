@@ -34,4 +34,4 @@ export const router = createBrowserRouter([
   },
   { path: '/404', element: <NotFoundPage /> },
   { path: '*', element: <Navigate to="/404" replace /> },
-]);
+], { basename: '/admin' });

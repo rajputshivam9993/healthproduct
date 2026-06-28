@@ -30,8 +30,8 @@ const getDefaultApiUrl = (): string => {
 
 export const config = {
   // An explicit env override always wins (use it for staging/production builds).
-  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? getDefaultApiUrl(),
-  // apiBaseUrl: 'http://13.203.230.171:3000/api',
+  //apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? getDefaultApiUrl(),
+  apiBaseUrl: 'http://13.203.230.171:3000/api',
   // React Query default stale time (ms).
   defaultStaleTime: 60_000,
   // Max mutation retry attempts on reconnect (Req 16.3).
